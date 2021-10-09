@@ -3,4 +3,5 @@ The software that enables Read/Write operations in NFC Tag is prepared with the 
 
 
 
-![Resim1](https://user-images.githubusercontent.com/71149855/136669604-28fcf577-e732-412e-9f76-16f835431a43.png)
+
+![UART-TERMINAL](https://user-images.githubusercontent.com/71149855/136669649-5f7f4071-eaa1-454c-89cd-f64115e40244.png)
