@@ -1,0 +1,242 @@
+import sys
+import serial,serial.tools.list_ports
+from PyQt5 import QtWidgets,QtSerialPort
+from PyQt5.QtGui import QPalette
+from PyQt5.QtCore import Qt,QIODevice,QTimer
+import time
+
+class Window(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.unit_ui()
+
+
+    def unit_ui(self):
+        self.text_area=QtWidgets.QTextEdit()
+        self.coms=QtWidgets.QPushButton("COM")
+        self.bound=QtWidgets.QPushButton("BoudRates")
+        self.data=QtWidgets.QPushButton("DataBits")
+        self.stop=QtWidgets.QPushButton("Stop Bits")
+        self.clear=QtWidgets.QPushButton("Clear")
+        self.send=QtWidgets.QPushButton("Send Data")
+        self.send.setShortcut("Enter")
+        self.connection=QtWidgets.QPushButton("Connect")
+        self.disconnect=QtWidgets.QPushButton("Disconnect")
+        self.lineEdit=QtWidgets.QLineEdit()
+        self.nfcsend=QtWidgets.QPushButton("Write A Record to NFC")
+        self.nfclineEdit=QtWidgets.QLineEdit()
+
+
+        self.v_box=QtWidgets.QVBoxLayout()
+        self.h_box = QtWidgets.QHBoxLayout()
+        self.h1_box=QtWidgets.QHBoxLayout()
+        self.h2_box=QtWidgets.QHBoxLayout()
+
+
+        self.h_box.addStretch(1)
+
+        self.h_box.addWidget(self.coms)
+        self.h_box.addWidget(self.bound)
+        self.h_box.addWidget(self.data)
+        self.h_box.addWidget(self.stop)
+        self.h_box.addWidget(self.connection)
+        self.h_box.addWidget(self.disconnect)
+        self.h_box.addWidget(self.clear)
+
+        self.h1_box.addStretch(1)
+
+        self.h1_box.addWidget(self.send)
+        self.h1_box.addWidget(self.lineEdit)
+        self.h1_box.addWidget(self.nfcsend)
+        self.h1_box.addWidget(self.nfclineEdit)
+
+
+        self.h2_box.addWidget(self.text_area)
+        self.v_box.addLayout(self.h_box)
+        self.v_box.addLayout(self.h1_box)
+        self.v_box.addLayout(self.h2_box)
+
+        self.setLayout(self.v_box)
+        self.clear.clicked.connect(self.clear_text)
+
+    def clear_text(self):
+        self.text_area.clear()
+
+class Work(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.window = Window()
+        self.qserial =QtSerialPort.QSerialPort()
+        self.setCentralWidget(self.window)
+        self.menus()
+    def menus(self):
+        self.serial_boud=None
+        self.serial_data=None
+        self.serial_port=None
+        self.serial_stop=None
+        menu_coms=QtWidgets.QMenu()
+        menu_boud=QtWidgets.QMenu()
+        menu_data=QtWidgets.QMenu()
+        menu_stop=QtWidgets.QMenu()
+        self.window.coms.setMenu(menu_coms)
+        self.window.bound.setMenu(menu_boud)
+        self.window.data.setMenu(menu_data)
+        self.window.stop.setMenu(menu_stop)
+        ## COMS PARAMETERS ##
+        com3=QtWidgets.QAction("COM4",self)
+        com4 = QtWidgets.QAction("COM5", self)
+        com5 = QtWidgets.QAction("COM6", self)
+        com6 = QtWidgets.QAction("COM7", self)
+        menu_coms.addAction(com3)
+        menu_coms.addAction(com4)
+        menu_coms.addAction(com5)
+        menu_coms.addAction(com6)
+
+        ## BAUD RATE PARAMETERS ##
+        br_96=QtWidgets.QAction("1200",self)
+        br_14 = QtWidgets.QAction("2400", self)
+        br_19 = QtWidgets.QAction("4800", self)
+        br_28 = QtWidgets.QAction("9600", self)
+        br_38 = QtWidgets.QAction("19200", self)
+        br_57 = QtWidgets.QAction("38400", self)
+        br_115 = QtWidgets.QAction("57600", self)
+        br_230 = QtWidgets.QAction("115200", self)
+
+        menu_boud.addAction(br_96)
+        menu_boud.addAction(br_14)
+        menu_boud.addAction(br_19)
+        menu_boud.addAction(br_28)
+        menu_boud.addAction(br_38)
+        menu_boud.addAction(br_57)
+        menu_boud.addAction(br_115)
+        menu_boud.addAction(br_230)
+
+        ##BYTE PARAMETERS##
+        data_5=QtWidgets.QAction("5",self)
+        data_6=QtWidgets.QAction("6",self)
+        data_7=QtWidgets.QAction("7",self)
+        data_8=QtWidgets.QAction("8",self)
+
+        menu_data.addAction(data_5)
+        menu_data.addAction(data_6)
+        menu_data.addAction(data_7)
+        menu_data.addAction(data_8)
+
+        #STOP BITS##
+        stop_1=QtWidgets.QAction("1",self)
+        stop_2=QtWidgets.QAction("2",self)
+
+        menu_stop.addAction(stop_1)
+        menu_stop.addAction(stop_2)
+
+        menu_coms.triggered.connect(self.response_com)
+        menu_boud.triggered.connect(self.response_boud)
+        menu_data.triggered.connect(self.response_data)
+        menu_stop.triggered.connect(self.response_stop)
+        self.window.connection.clicked.connect(self.connection)
+        self.window.disconnect.clicked.connect(self.disconnection)
+
+
+        self.window.nfcsend.clicked.connect(self.send_NFC_data)
+
+        self.setWindowTitle("UART TERMINAL")
+        self.setGeometry(600, 200, 625, 625)
+    def response_com(self,action):
+
+        self.serial_port=action.text()
+
+    def response_boud(self,action_bound):
+        if (action_bound.text()==str(1200)):
+            self.serial_boud=self.qserial.BaudRate.Baud1200
+        if (action_bound.text() == str(2400)):
+            self.serial_boud = self.qserial.BaudRate.Baud2400
+        if (action_bound.text() == str(4800)):
+            self.serial_boud = self.qserial.BaudRate.Baud4800
+        if (action_bound.text() == str(9600)):
+            self.serial_boud = self.qserial.BaudRate.Baud9600
+        if (action_bound.text() == str(19200)):
+            self.serial_boud = self.qserial.BaudRate.Baud19200
+        if (action_bound.text() == str(38400)):
+            self.serial_boud = self.qserial.BaudRate.Baud38400
+        if (action_bound.text() == str(57600)):
+            self.serial_boud = self.qserial.BaudRate.Baud57600
+        if (action_bound.text() == str(115200)):
+            self.serial_boud = self.qserial.BaudRate.Baud115200
+
+
+    def response_data(self,action_data):
+
+        if (action_data.text() == str(5)):
+            self.serial_data = self.qserial.DataBits.Data5
+
+        elif (action_data.text() == str(6)):
+            self.serial_data = self.qserial.DataBits.Data6
+        elif (action_data.text() == str(7)):
+            self.serial_data = self.qserial.DataBits.Data7
+        elif (action_data.text() == str(8)):
+            self.serial_data = self.qserial.DataBits.Data8
+
+    def response_stop(self,action_stop):
+        if(action_stop.text()==str(1)):
+            self.serial_stop=self.qserial.StopBits.OneStop
+        elif(action_stop.text()==str(2)):
+            self.serial_stop= self.qserial.StopBits.TwoStop
+    def connection(self):
+        if (self.serial_boud==None or self.serial_data==None or self.serial_port==None or self.serial_stop==None) :
+            self.window.text_area.setText("Parameter selections are not complete")
+        elif (self.serial_boud != None and self.serial_data != None and self.serial_port != None and self.serial_stop!=None):
+
+            self.window.text_area.append("Port Number:{}\nBoud Rate:{}\nByte:{}\nStop bits:{}".format(self.serial_port, self.serial_boud, self.serial_data,self.serial_stop))
+            self.qserial.setPortName(self.serial_port)
+
+            self.qserial.setBaudRate(self.qserial.BaudRate.Baud115200)
+            self.qserial.setDataBits(self.serial_data)
+            self.qserial.setStopBits(self.serial_stop)
+            self.qserial.setFlowControl(self.qserial.FlowControl.NoFlowControl)
+
+            self.qserial.open(QIODevice.ReadWrite)
+            if(self.qserial.isOpen()!=False):
+                self.window.text_area.append("Port is Open. Waiting for incoming Data...\r\n")
+                self.qserial.readyRead.connect(self.reading)
+                self.window.send.clicked.connect(self.send_data)
+        else:
+            self.window.text_area.append("Port can not open!\r\n")
+    def disconnection(self):
+        self.qserial.close()
+        if(self.qserial.isOpen()==False):
+            self.window.text_area.append("Disconnected...\r\n")
+    def reading(self):
+        while self.qserial.canReadLine():
+            time.sleep(0.25)
+            b=bytes(self.qserial.readLine())
+            try:
+                read_all = b.decode("utf-8")
+            except UnicodeDecodeError:
+                read_all = str(b)[2:-1]
+            self.window.text_area.append(read_all)
+
+
+
+    def send_data(self):
+        time.sleep(0.25)
+        self.qserial.write(self.window.lineEdit.text().encode("utf-8"))
+        self.window.lineEdit.clear()
+    def send_NFC_data(self):
+
+        self.qserial.write(self.window.nfclineEdit.text().encode("utf-8"))
+        self.window.text_area.append("Data to be written to the tag: {} ".format(self.window.nfclineEdit.text()))
+        self.window.nfclineEdit.clear()
+
+
+app = QtWidgets.QApplication(sys.argv)
+app.setStyle('Fusion')
+palet = QPalette()
+palet.setColor(QPalette.ButtonText, Qt.cyan)
+palet.setColor(QPalette.Button, Qt.darkBlue)
+palet.setColor(QPalette.Text, Qt.yellow)
+palet.setColor(QPalette.Base, Qt.black)
+app.setPalette(palet)
+work=Work()
+work.show()
+sys.exit(app.exec_())
