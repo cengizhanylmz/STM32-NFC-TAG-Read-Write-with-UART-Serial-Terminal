@@ -8,11 +8,6 @@ import datetime
 import locale
 import os
 
-class Window2(QtWidgets.QWidget):
-    def __init__(self):
-        super(Window2, self).__init__()
-        self.setWindowTitle("Pencere")
-
 class Window(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
